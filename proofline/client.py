@@ -104,6 +104,7 @@ _REVIEW_ROUTING_MODELS: _ReviewRoutingModels = (
 
 
 class ReviewFilters(TypedDict, total=False):
+    audits: str| None
     attention: str | None
     author: str | None
     cursor: str | None
@@ -561,7 +562,7 @@ class ProoflineClient(Operations):
             seen.add(cursor)
         count = 0
         for _ in range(max_pages):
-            page = list_pull_request_reviews(organization_id, repository, pull_request_number, filters=params)
+            page = self.list_pull_request_reviews(organization_id, repository, pull_request_number, filters=params)
             for item in page.items:
                 if count == max_items:
                     raise _pagination_limit()

@@ -105,6 +105,12 @@ async def collect(client: Client, **kwargs: Any) -> list[Any]:
         return [item async for item in iterator]
     return list(iterator)
 
+async def collect_pr(client: Client, **kwargs: Any) -> list[Any]:
+    iterator = client.iter_pull_request_reviews(ORG, "owner/name", 7, **kwargs)
+    if hasattr(iterator, "__aiter__"):
+        return [item async for item in iterator]
+    return list(iterator)
+
 
 class Clock:
     def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1737,6 +1743,35 @@ async def test_cursor_pagination_preserves_filters_and_refuses_cycles_or_bounds(
             with pytest.raises(ProoflineError) as raised:
                 await collect(client, max_items=1, filters={"cursor": "initial"})
             assert raised.value.type == "urn:proofline:sdk:pagination-limit"
+
+@MODES
+async def test_pull_request_pagination_preserves_filters_and_refuses_cycles_or_bounds(
+    mode: str,
+) -> None:
+    def respond(request: Request, index: int) -> Reply:
+        path = urlsplit(request.path).path
+        assert path == f"/api/v1/organizations/{ORG}/reviews/pr/owner%2Fname/7"
+        query = parse_qs(urlsplit(request.path).query)
+        assert query["status"] == ["COMPLETED"]
+        assert query["audits"] == ["security"]
+        assert query["limit"] == ["2"]
+        if index == 0:
+            assert "cursor" not in query
+        else:
+            assert query["cursor"] == ["next-page"]
+        return Reply(
+            body=page(cursor="next-page" if index == 0 else None, truncated=index == 0)
+        )
+
+    with Server(respond) as server:
+        async with session(mode, server.url) as client:
+            items = await collect_pr(
+                client,
+                page_size=2,
+                filters={"status": "COMPLETED", "audits": "security"},
+            )
+            assert [item.id for item in items] == [REVIEW, REVIEW]
+        assert len(server.requests) == 2
 
 
 def test_token_environment_and_https_origin_rejection(monkeypatch: pytest.MonkeyPatch) -> None:

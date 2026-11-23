@@ -55,6 +55,23 @@ if outcome.status != "COMPLETED":
 
 `head_commit_sha` is a full SHA of 40 or 64 hexadecimal characters; any other value raises `ValueError` before a request. A review pinned to another head ends the wait on the read that names it. Its outcome is `INCOMPLETE` whatever the review's own status, its last gap has the reason code `HEAD_COMMIT_MISMATCH`, and `reason` says that the review is pinned to another head commit. A settled review that names no head has `HEAD_COMMIT_UNAVAILABLE` instead and is not `COMPLETED` either. `outcome.review.head_commit_sha` is the commit the review is pinned to. A patch review's head is a derived revision ID, so no commit matches it. In a GitHub Actions `pull_request` job, `GITHUB_SHA` is the merge commit; pass the pull request's head.
 
+## Pull request review history
+
+`iter_pull_request_reviews` yields every review run on one pull request, following continuation cursors lazily with the same filters on every request.
+
+```python
+with ProoflineClient() as client:
+    for review in client.iter_pull_request_reviews(
+        UUID(os.environ["PROOFLINE_ORGANIZATION_ID"]),
+        "owner/name",
+        12,
+        filters={"status": "COMPLETED"},
+    ):
+        print(review.id, review.status)
+```
+
+Use `async for` with `AsyncProoflineClient`. Pass `cursor` in `filters` to resume. `page_size` sets the page size from 1 to 100; `max_pages` (1 to 1000, default 100) and `max_items` (1 to 100,000, default 10,000) bound the traversal. Empty or repeated continuation cursors raise `ProoflineError` with type `urn:proofline:sdk:invalid-pagination`, and reaching either bound while reviews remain raises `urn:proofline:sdk:pagination-limit`, so a partial history cannot silently appear complete.
+
 ## Review exports
 
 `export_reviews` reads one CSV or NDJSON page over the bounded transport. Export tokens require `analytics:read`.
