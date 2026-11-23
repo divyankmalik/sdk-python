@@ -105,6 +105,7 @@ async def collect(client: Client, **kwargs: Any) -> list[Any]:
         return [item async for item in iterator]
     return list(iterator)
 
+
 async def collect_pr(client: Client, **kwargs: Any) -> list[Any]:
     iterator = client.iter_pull_request_reviews(ORG, "owner/name", 7, **kwargs)
     if hasattr(iterator, "__aiter__"):
@@ -1744,6 +1745,7 @@ async def test_cursor_pagination_preserves_filters_and_refuses_cycles_or_bounds(
                 await collect(client, max_items=1, filters={"cursor": "initial"})
             assert raised.value.type == "urn:proofline:sdk:pagination-limit"
 
+
 @MODES
 async def test_pull_request_pagination_preserves_filters_and_refuses_cycles_or_bounds(
     mode: str,
@@ -1759,9 +1761,7 @@ async def test_pull_request_pagination_preserves_filters_and_refuses_cycles_or_b
             assert "cursor" not in query
         else:
             assert query["cursor"] == ["next-page"]
-        return Reply(
-            body=page(cursor="next-page" if index == 0 else None, truncated=index == 0)
-        )
+        return Reply(body=page(cursor="next-page" if index == 0 else None, truncated=index == 0))
 
     with Server(respond) as server:
         async with session(mode, server.url) as client:

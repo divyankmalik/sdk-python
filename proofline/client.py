@@ -104,8 +104,8 @@ _REVIEW_ROUTING_MODELS: _ReviewRoutingModels = (
 
 
 class ReviewFilters(TypedDict, total=False):
-    audits: str| None
     attention: str | None
+    audits: str | None
     author: str | None
     cursor: str | None
     environment: UUID | None
@@ -539,18 +539,17 @@ class ProoflineClient(Operations):
             params["cursor"] = cursor
         raise _pagination_limit()
 
-
     def iter_pull_request_reviews(
-    self,
-    organization_id: UUID,
-    repository: str,
-    pull_request_number: int,
-    *,
-    page_size: int = 100,
-    max_pages: int = 100,
-    max_items: int = 10_000,
-    filters: ReviewFilters | None = None,
-) -> Iterator[ReviewSummary]:
+        self,
+        organization_id: UUID,
+        repository: str,
+        pull_request_number: int,
+        *,
+        page_size: int = 100,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+        filters: ReviewFilters | None = None,
+    ) -> Iterator[ReviewSummary]:
         _page_limits(page_size, max_pages, max_items)
         params: ReviewFilters = {}
         if filters:
@@ -562,7 +561,9 @@ class ProoflineClient(Operations):
             seen.add(cursor)
         count = 0
         for _ in range(max_pages):
-            page = self.list_pull_request_reviews(organization_id, repository, pull_request_number, filters=params)
+            page = self.list_pull_request_reviews(
+                organization_id, repository, pull_request_number, filters=params
+            )
             for item in page.items:
                 if count == max_items:
                     raise _pagination_limit()
@@ -573,9 +574,6 @@ class ProoflineClient(Operations):
                 return
             params["cursor"] = cursor
         raise _pagination_limit()
-
-        
-   
 
     def wait_for_review(
         self,
@@ -973,17 +971,17 @@ class AsyncProoflineClient(AsyncOperations):
         raise _pagination_limit()
 
     async def iter_pull_request_reviews(
-    self,
-    organization_id: UUID,
-    repository: str,
-    pull_request_number: int,
-    *,
-    page_size: int = 100,
-    max_pages: int = 100,
-    max_items: int = 10_000,
-    filters: ReviewFilters | None = None,
-) -> AsyncIterator[ReviewSummary]:
-        
+        self,
+        organization_id: UUID,
+        repository: str,
+        pull_request_number: int,
+        *,
+        page_size: int = 100,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+        filters: ReviewFilters | None = None,
+    ) -> AsyncIterator[ReviewSummary]:
+
         _page_limits(page_size, max_pages, max_items)
         params: ReviewFilters = {}
         if filters:
