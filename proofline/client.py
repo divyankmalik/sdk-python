@@ -153,6 +153,13 @@ def _page_limits(page_size: int, max_pages: int, max_items: int) -> None:
         )
 
 
+def _repository_name(repository: str) -> None:
+    if not isinstance(repository, str) or not repository or "/" in repository:
+        raise ValueError(
+            "repository must be the repository's name without its owner, such as web for acme/web."
+        )
+
+
 def _head_commit(value: str | None) -> None:
     # Only a full SHA names one exact commit; a branch or an abbreviation does not.
     if value is not None and (
@@ -550,6 +557,7 @@ class ProoflineClient(Operations):
         max_items: int = 10_000,
         filters: ReviewFilters | None = None,
     ) -> Iterator[ReviewSummary]:
+        _repository_name(repository)
         _page_limits(page_size, max_pages, max_items)
         params: ReviewFilters = {}
         if filters:
@@ -981,7 +989,7 @@ class AsyncProoflineClient(AsyncOperations):
         max_items: int = 10_000,
         filters: ReviewFilters | None = None,
     ) -> AsyncIterator[ReviewSummary]:
-
+        _repository_name(repository)
         _page_limits(page_size, max_pages, max_items)
         params: ReviewFilters = {}
         if filters:

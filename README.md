@@ -63,14 +63,14 @@ if outcome.status != "COMPLETED":
 with ProoflineClient() as client:
     for review in client.iter_pull_request_reviews(
         UUID(os.environ["PROOFLINE_ORGANIZATION_ID"]),
-        "owner/name",
+        "web",
         12,
         filters={"status": "COMPLETED"},
     ):
         print(review.id, review.status)
 ```
 
-Use `async for` with `AsyncProoflineClient`. Pass `cursor` in `filters` to resume. `page_size` sets the page size from 1 to 100; `max_pages` (1 to 1000, default 100) and `max_items` (1 to 100,000, default 10,000) bound the traversal. Empty or repeated continuation cursors raise `ProoflineError` with type `urn:proofline:sdk:invalid-pagination`, and reaching either bound while reviews remain raises `urn:proofline:sdk:pagination-limit`, so a partial history cannot silently appear complete.
+`repository` is the repository's name without its owner, such as `web` for `acme/web`; an empty name or one containing `/` raises `ValueError` before a request. Use `async for` with `AsyncProoflineClient`. Pass `cursor` in `filters` to resume. `page_size` sets the page size from 1 to 100; `max_pages` (1 to 1000, default 100) and `max_items` (1 to 100,000, default 10,000) bound the traversal. Empty or repeated continuation cursors raise `ProoflineError` with type `urn:proofline:sdk:invalid-pagination`, and reaching either bound while reviews remain raises `urn:proofline:sdk:pagination-limit`, so a partial history cannot silently appear complete.
 
 ## Review exports
 

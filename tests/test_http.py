@@ -107,7 +107,7 @@ async def collect(client: Client, **kwargs: Any) -> list[Any]:
 
 
 async def collect_pr(client: Client, **kwargs: Any) -> list[Any]:
-    iterator = client.iter_pull_request_reviews(ORG, "owner/name", 7, **kwargs)
+    iterator = client.iter_pull_request_reviews(ORG, "name", 7, **kwargs)
     if hasattr(iterator, "__aiter__"):
         return [item async for item in iterator]
     return list(iterator)
@@ -1752,10 +1752,10 @@ async def test_pull_request_pagination_preserves_filters_and_refuses_cycles_or_b
 ) -> None:
     def respond(request: Request, index: int) -> Reply:
         path = urlsplit(request.path).path
-        assert path == f"/api/v1/organizations/{ORG}/reviews/pr/owner%2Fname/7"
+        assert path == f"/api/v1/organizations/{ORG}/reviews/pr/name/7"
         query = parse_qs(urlsplit(request.path).query)
         assert query["status"] == ["COMPLETED"]
-        assert query["audits"] == ["security"]
+        assert query["audits"] == ["only"]
         assert query["limit"] == ["2"]
         if index == 0:
             assert "cursor" not in query
@@ -1768,10 +1768,29 @@ async def test_pull_request_pagination_preserves_filters_and_refuses_cycles_or_b
             items = await collect_pr(
                 client,
                 page_size=2,
-                filters={"status": "COMPLETED", "audits": "security"},
+                filters={"status": "COMPLETED", "audits": "only"},
             )
             assert [item.id for item in items] == [REVIEW, REVIEW]
         assert len(server.requests) == 2
+
+
+@MODES
+@pytest.mark.parametrize("repository", ["owner/name", ""])
+async def test_pull_request_pagination_rejects_owner_or_empty_repository(
+    mode: str, repository: str
+) -> None:
+    def respond(request: Request, index: int) -> Reply:
+        raise AssertionError("no request should reach the server")
+
+    with Server(respond) as server:
+        async with session(mode, server.url) as client:
+            iterator = client.iter_pull_request_reviews(ORG, repository, 7)
+            with pytest.raises(ValueError, match="without its owner"):
+                if hasattr(iterator, "__aiter__"):
+                    await iterator.__anext__()
+                else:
+                    next(iterator)
+        assert server.requests == []
 
 
 def test_token_environment_and_https_origin_rejection(monkeypatch: pytest.MonkeyPatch) -> None:
